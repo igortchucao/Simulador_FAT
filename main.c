@@ -2,6 +2,7 @@
 
 int main(void)
 {	
+	comandoInicializar();
 	while(1)
 	{
 		shell();

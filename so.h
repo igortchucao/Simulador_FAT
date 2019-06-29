@@ -43,9 +43,9 @@ void unlink(char* path);
 
 int  encontra_free_space(dir_entry_t* dir);
 
-void init(void);
+int init(void);
 
-void carregaFat(void);
+int carregaFat(void);
 
 void salvaFat(void);
 
@@ -59,15 +59,15 @@ data_cluster* encontraPrincipal(data_cluster* current_cluster, char* path, int* 
 
 data_cluster* encontra(data_cluster* current_cluster, char* path, int* addr);
 
-char* get_name(char* path);
+char* pegaNome(char* path);
 
-int encontra_free_space(dir_entry_t* dir);
+int encontraEspacoVazio(dir_entry_t* dir);
 
-void copy_str(char* copia, char* copiado);
+void copiaString(char* copia, char* copiado);
 
 void limpaString(char* s);
 
-int search_fat_free_block(void);
+int procuraBlocoLivre(void);
 
 void ls(char* path);
 
@@ -78,3 +78,5 @@ void write(char* path, char* content);
 int empty(int block);
 
 void shell(void);
+
+void comandoInicializar();
