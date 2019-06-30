@@ -71,6 +71,17 @@ int init(void)
 	return 1;
 }
 
+//Salva a fat no arquivo fat.part
+void salvaFat(void)
+{
+	int i;
+	FILE* fatFile;
+	fatFile = fopen(fat_name, "r+b");
+	fseek(fatFile, sizeof(boot_block), 0);
+	fwrite(fat, sizeof(fat), 1, fatFile);
+	fclose(fatFile);
+}
+
 //Carrega uma fat já existente
 int carregaFat(void)
 {
@@ -88,17 +99,6 @@ int carregaFat(void)
 	fclose(fatFile);
 		return 1;
 	}
-}
-
-//Salva a fat no arquivo fat.part
-void salvaFat(void)
-{
-	int i;
-	FILE* fatFile;
-	fatFile = fopen(fat_name, "r+b");
-	fseek(fatFile, sizeof(boot_block), 0);
-	fwrite(fat, sizeof(fat), 1, fatFile);
-	fclose(fatFile);
 }
 
 //Carrega um cluster da fat
@@ -232,12 +232,6 @@ void copiaString(char* copia, char* copiado)
 	}
 }
 
-//Usa calloc para limpar a string (utilizado no write para sobrescrever)
-void limpaString(char* s)
-{
-	s = (unsigned char*)calloc(CLUSTER_SIZE,sizeof(unsigned char));
-}
-
 //Procura um bloco na fat que retone -1 (Livre)
 int procuraBlocoLivre(void)
 {
@@ -250,6 +244,12 @@ int procuraBlocoLivre(void)
 			return i;
 		}
 	return 0;
+}
+
+//Usa calloc para limpar a string (utilizado no write para sobrescrever)
+void limpaString(char* s)
+{
+	s = (unsigned char*)calloc(CLUSTER_SIZE,sizeof(unsigned char));
 }
 
 void mkdir(char* caminho)
