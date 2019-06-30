@@ -41,7 +41,7 @@ void read  (char* path);
 
 void unlink(char* path);
 
-int  encontra_free_space(dir_entry_t* dir);
+int  encontrarEspacoLivre(dir_entry_t* dir);
 
 int init(void);
 
