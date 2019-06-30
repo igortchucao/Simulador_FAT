@@ -4,11 +4,11 @@
 #include <stdlib.h>
 
 /*DEFINE*/
-#define SECTOR_SIZE	512
-#define CLUSTER_SIZE	2*SECTOR_SIZE
-#define ENTRY_BY_CLUSTER CLUSTER_SIZE /sizeof(dir_entry_t);
-#define NUM_CLUSTER	4096
-#define fat_name	"fat.part"
+#define TAMANHO_SETOR	512
+#define TAMANHO_CLUSTER	2*TAMANHO_SETOR
+#define ENTRAR_PELO_CLUSTER TAMANHO_CLUSTER /sizeof(dir_entry_t)
+#define NUMERO_CLUSTER	4096
+#define NOME_FAT	"fat.part"
 
 struct _dir_entry_t
 {
