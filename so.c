@@ -29,13 +29,13 @@ union _data_cluster
 
 typedef union _data_cluster data_cluster;
 
-/*DATA DECLARATION*/
+/*DECLARAÇÃO DE DADOS*/
 unsigned short fat[NUM_CLUSTER];
 unsigned char boot_block[CLUSTER_SIZE];
 dir_entry_t root_dir[32];
 data_cluster clusters[4086];
 
-/*Function declaration*/
+/*DECLARAÇÃO DE FUNÇÕES DO SHELL*/
 void append(char* caminho, char* content);
 void create(char* caminho);
 void mkdir (char* caminho);
