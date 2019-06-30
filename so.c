@@ -4,11 +4,11 @@
 #include <stdlib.h>
 
 /*DEFINE*/
-#define SECTOR_SIZE	512
-#define CLUSTER_SIZE	2*SECTOR_SIZE
-#define ENTRY_BY_CLUSTER CLUSTER_SIZE /sizeof(dir_entry_t)
-#define NUM_CLUSTER	4096
-#define fat_name	"fat.part"
+#define TAMANHO_SETOR	512
+#define TAMANHO_CLUSTER	2*TAMANHO_SETOR
+#define ENTRAR_PELO_CLUSTER TAMANHO_CLUSTER /sizeof(dir_entry_t)
+#define NUMERO_CLUSTER	4096
+#define NOME_FAT	"fat.part"
 
 struct _dir_entry_t
 {
@@ -23,15 +23,15 @@ typedef struct _dir_entry_t  dir_entry_t;
 
 union _data_cluster
 {
-	dir_entry_t dir[CLUSTER_SIZE / sizeof(dir_entry_t)];
-	unsigned char data[CLUSTER_SIZE];
+	dir_entry_t dir[TAMANHO_CLUSTER / sizeof(dir_entry_t)];
+	unsigned char data[TAMANHO_CLUSTER];
 };
 
 typedef union _data_cluster data_cluster;
 
 /*DECLARAÇÃO DE DADOS*/
-unsigned short fat[NUM_CLUSTER];
-unsigned char boot_block[CLUSTER_SIZE];
+unsigned short fat[NUMERO_CLUSTER];
+unsigned char boot_block[TAMANHO_CLUSTER];
 dir_entry_t root_dir[32];
 data_cluster clusters[4086];
 
@@ -47,8 +47,8 @@ int init(void)
 {
 	FILE* ptr_file;
 	int i;
-	ptr_file = fopen(fat_name,"wb");
-	for (i = 0; i < CLUSTER_SIZE; ++i)
+	ptr_file = fopen(NOME_FAT,"wb");
+	for (i = 0; i < TAMANHO_CLUSTER; ++i)
 		boot_block[i] = 0xbb;
 
 	fwrite(&boot_block, sizeof(boot_block), 1,ptr_file);
@@ -58,7 +58,7 @@ int init(void)
 		fat[i] = 0xfffe;
 
 	fat[9] = 0xffff;
-	for (i = 10; i < NUM_CLUSTER; ++i)
+	for (i = 10; i < NUMERO_CLUSTER; ++i)
 		fat[i] = 0x0000;
 
 	fwrite(&fat, sizeof(fat), 1, ptr_file);
@@ -75,28 +75,28 @@ int init(void)
 void salvaFat(void)
 {
 	int i;
-	FILE* fatFile;
-	fatFile = fopen(fat_name, "r+b");
-	fseek(fatFile, sizeof(boot_block), 0);
-	fwrite(fat, sizeof(fat), 1, fatFile);
-	fclose(fatFile);
+	FILE* arqFAT;
+	arqFAT = fopen(NOME_FAT, "r+b");
+	fseek(arqFAT, sizeof(boot_block), 0);
+	fwrite(fat, sizeof(fat), 1, arqFAT);
+	fclose(arqFAT);
 }
 
 //Carrega uma fat já existente
 int carregaFat(void)
 {
 	int i;
-	FILE* fatFile;
-	fatFile = fopen(fat_name, "rb");
+	FILE* arqFAT;
+	arqFAT = fopen(NOME_FAT, "rb");
 	//Caso não exista o arquivo fat.part
-	if(fatFile == NULL){
+	if(arqFAT == NULL){
 		printf("Fat não achada, use o comando init para inicia-la \n");
 		return 0;
 	}else{
 	//Caso exista carrega a fat
-	fseek(fatFile, sizeof(boot_block), 0);
-	fread(fat, sizeof(fat), 1, fatFile);
-	fclose(fatFile);
+	fseek(arqFAT, sizeof(boot_block), 0);
+	fread(fat, sizeof(fat), 1, arqFAT);
+	fclose(arqFAT);
 		return 1;
 	}
 }
@@ -108,13 +108,13 @@ data_cluster* carregaFatCluster(int bloco)
 	data_cluster* cluster;
 	cluster = calloc(1, sizeof(data_cluster));
 	//Abre o arquivo da fat
-	FILE* fatFile;
-	fatFile = fopen(fat_name, "rb");
+	FILE* arqFAT;
+	arqFAT = fopen(NOME_FAT, "rb");
 	//Acessa no arquivo da fat a posição em que o bloco se encontra
-	fseek(fatFile, bloco*sizeof(data_cluster), 0);
+	fseek(arqFAT, bloco*sizeof(data_cluster), 0);
 	//Lê o cluster que esta na fat e poem ele na variavel cluster
-	fread(cluster, sizeof(data_cluster), 1, fatFile);
-	fclose(fatFile);
+	fread(cluster, sizeof(data_cluster), 1, arqFAT);
+	fclose(arqFAT);
 	//Retorna o cluster lido
 	return cluster;
 }
@@ -122,13 +122,13 @@ data_cluster* carregaFatCluster(int bloco)
 //Escreve em um clsuter da fat
 data_cluster* escreveCluster(int bloco, data_cluster* cluster)
 {
-	FILE* fatFile;
-	fatFile = fopen(fat_name, "r+b");
+	FILE* arqFAT;
+	arqFAT = fopen(NOME_FAT, "r+b");
 	//Acessa o arquivo da fat na posição passada do bloco
-	fseek(fatFile, bloco*sizeof(data_cluster), 0);
+	fseek(arqFAT, bloco*sizeof(data_cluster), 0);
 	//Escreve no cluster que está na fat
-	fwrite(cluster, sizeof(data_cluster), 1, fatFile);
-	fclose(fatFile);
+	fwrite(cluster, sizeof(data_cluster), 1, arqFAT);
+	fclose(arqFAT);
 }
 
 //Utiliza-se do calloc para zerar um cluster
@@ -152,13 +152,13 @@ data_cluster* encontraPrincipal(data_cluster* clusterAtual, char* caminho, int* 
 
 	int i=0;
 	while (i < 32) {
-		dir_entry_t child = current_dir[i];
-		if (strcmp(child.filename, nomeDiretorio) == 0 && resto){
-			data_cluster* cluster = carregaFatCluster(child.first_block);
-			*endereco = child.first_block;
+		dir_entry_t filho = current_dir[i];
+		if (strcmp(filho.filename, nomeDiretorio) == 0 && resto){
+			data_cluster* cluster = carregaFatCluster(filho.first_block);
+			*endereco = filho.first_block;
 			return encontraPrincipal(cluster, resto, endereco);
 		}
-		else if (strcmp(child.filename, nomeDiretorio) == 0 && resto){
+		else if (strcmp(filho.filename, nomeDiretorio) == 0 && resto){
 			return NULL;
 		}
 		i++;
@@ -184,10 +184,10 @@ data_cluster* encontra(data_cluster* clusterAtual, char* caminho, int* endereco)
 
 	int i=0;
 	while (i < 32) {
-		dir_entry_t child = current_dir[i];
-		if (strcmp(child.filename, nomeDiretorio) == 0){
-			data_cluster* cluster = carregaFatCluster(child.first_block);
-			*endereco = child.first_block;
+		dir_entry_t filho = current_dir[i];
+		if (strcmp(filho.filename, nomeDiretorio) == 0){
+			data_cluster* cluster = carregaFatCluster(filho.first_block);
+			*endereco = filho.first_block;
 			return encontra(cluster, resto, endereco);
 		}
 		i++;
@@ -249,7 +249,7 @@ int procuraBlocoLivre(void)
 //Usa calloc para limpar a string (utilizado no write para sobrescrever)
 void limpaString(char* s)
 {
-	s = (unsigned char*)calloc(CLUSTER_SIZE,sizeof(unsigned char));
+	s = (unsigned char*)calloc(TAMANHO_CLUSTER,sizeof(unsigned char));
 }
 
 void mkdir(char* caminho)
@@ -273,7 +273,7 @@ void mkdir(char* caminho)
 		}
 	}
 	else
-		printf("caminho NOT FOUND\n");
+		printf("caminho NÃO ENCONTRADO\n");
 }
 
 void ls(char* caminho)
@@ -289,7 +289,7 @@ void ls(char* caminho)
 		}
 	}
 	else
-		printf("caminho NOT FOUND\n");
+		printf("caminho NÃO ENCONTRADO\n");
 }
 
 int temFilho(char* caminho)
@@ -329,7 +329,7 @@ void create(char* caminho)
 		}
 	}
 	else
-		printf("caminho NOT FOUND\n");
+		printf("caminho NÃO ENCONTRADO\n");
 }
 
 void write(char* caminho, char* content)
@@ -343,9 +343,10 @@ void write(char* caminho, char* content)
 		escreveCluster(root_endereco, cluster);
 	}
 	else
-		printf("FILE NOT FOUND\n");
+		printf("FILE NÃO ENCONTRADO\n");
 
 }
+
 int empty(int block)
 {
 	data_cluster* cluster = carregaFatCluster(block);
@@ -382,7 +383,7 @@ void unlink(char* caminho)
 				}
 			}
 		}else{
-			printf("FILE NOT FOUND UNLINK\n");
+			printf("ARQUIVO NÃO ENCONTRADO\n");
 		}
 	}
 
@@ -398,7 +399,7 @@ void read(char* caminho)
 		printf("%s\n", cluster->data);
 
 	else
-		printf("FILE NOT FOUND\n");
+		printf("FILE NÃO ENCONTRADO\n");
 }
 
 void append(char* caminho, char* content)
@@ -415,7 +416,7 @@ void append(char* caminho, char* content)
 	}
 
 	else
-		printf("FILE NOT FOUND\n");
+		printf("FILE NÃO ENCONTRADO\n");
 
 }
 
@@ -508,7 +509,8 @@ void shell(void)
 	else printf("Erro no comando \n");
 }
 
-void comandoInicializar(){
+void comandoInicializar()
+{
 	int aux = 0;
 	while(aux != 1){
 		char nome[4096] = { 0 };
