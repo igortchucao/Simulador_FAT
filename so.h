@@ -75,8 +75,6 @@ int temFilho(char* path);
 
 void write(char* path, char* content);
 
-int empty(int block);
-
 void shell(void);
 
 void comandoInicializar();
