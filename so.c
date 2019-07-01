@@ -251,36 +251,11 @@ void limpaString(char* s)
 {
 	s = (unsigned char*)calloc(TAMANHO_CLUSTER,sizeof(unsigned char));
 }
-
-void mkdir(char* caminho)
-{
-	if(caminho == "/")
-		return;
-
-	int root_endereco = 9;
-	data_cluster* root_cluster = carregaFatCluster(9);
-	data_cluster* cluster_parent = encontraPrincipal(root_cluster, caminho, &root_endereco);
-
-	if (cluster_parent){
-		int free_position = encontraEspacoVazio(cluster_parent->dir);
-		int fat_block = procuraBlocoLivre();
-		if (fat_block && free_position != -1) {
-			char* nomeDiretorio = pegaNome(caminho);
-			copiaString(cluster_parent->dir[free_position].filename, nomeDiretorio);
-			cluster_parent->dir[free_position].attributes = 1;
-			cluster_parent->dir[free_position].first_block = fat_block;
-			escreveCluster(root_endereco, cluster_parent);
-		}
-	}
-	else
-		printf("caminho NÃO ENCONTRADO\n");
-}
-
 void ls(char* caminho)
 {
-	int root_endereco = 9;
-	data_cluster* root_cluster = carregaFatCluster(9);
-	data_cluster* cluster = encontra(root_cluster, caminho, &root_endereco);
+	int enderecoRoot = 9;
+	data_cluster* clusterDoRoot = carregaFatCluster(9);
+	data_cluster* cluster = encontra(clusterDoRoot, caminho, &enderecoRoot);
 	int i;
 	if (cluster){
 		for (i = 0; i < 32; ++i){
@@ -289,14 +264,41 @@ void ls(char* caminho)
 		}
 	}
 	else
-		printf("caminho NÃO ENCONTRADO\n");
+		printf("caminho não encontrado\n");
 }
 
+//Função para criar um diretorio
+void mkdir(char* caminho)
+{
+	if(caminho == "/")
+		return;
+
+	int enderecoRoot = 9;
+	data_cluster* clusterDoRoot = carregaFatCluster(9);
+	data_cluster* clusterPrincipal = encontraPrincipal(clusterDoRoot, caminho, &enderecoRoot);
+
+	if (clusterPrincipal){
+		int posicaoLivre = encontraEspacoVazio(clusterPrincipal->dir);
+		int blocoFat = procuraBlocoLivre();
+		if (blocoFat && posicaoLivre != -1) {
+			char* nomeDiretorio = pegaNome(caminho);
+			copiaString(clusterPrincipal->dir[posicaoLivre].filename, nomeDiretorio);
+			clusterPrincipal->dir[posicaoLivre].attributes = 1;
+			clusterPrincipal->dir[posicaoLivre].first_block = blocoFat;
+			escreveCluster(enderecoRoot, clusterPrincipal);
+		}
+	}
+	else
+		printf("caminho não encontrado\n");
+}
+
+
+//Função que retorna 1 caso tenha algum diretorio ou arquivo dentro do diretorio olhado
 int temFilho(char* caminho)
 {
-	int root_endereco = 9;
-	data_cluster* root_cluster = carregaFatCluster(9);
-	data_cluster* cluster = encontra(root_cluster, caminho, &root_endereco);
+	int enderecoRoot = 9;
+	data_cluster* clusterDoRoot = carregaFatCluster(9);
+	data_cluster* cluster = encontra(clusterDoRoot, caminho, &enderecoRoot);
 	int i;
 	if (cluster){
 		for (i = 0; i < 32; ++i){
@@ -308,64 +310,40 @@ int temFilho(char* caminho)
 		return 0;
 }
 
+//Função que cria um arquivo
 void create(char* caminho)
 {
 	if(caminho == "/")
 		return;
 
-	int root_endereco = 9;
-	data_cluster* root_cluster = carregaFatCluster(9);
-	data_cluster* cluster_parent = encontraPrincipal(root_cluster, caminho, &root_endereco);
+	int enderecoRoot = 9;
+	data_cluster* clusterDoRoot = carregaFatCluster(9);
+	data_cluster* clusterPrincipal = encontraPrincipal(clusterDoRoot, caminho, &enderecoRoot);
 
-	if (cluster_parent){
-		int free_position = encontraEspacoVazio(cluster_parent->dir);
-		int fat_block = procuraBlocoLivre();
-		if (fat_block && free_position != -1) {
+	if (clusterPrincipal){
+		int posicaoLivre = encontraEspacoVazio(clusterPrincipal->dir);
+		int blocoFat = procuraBlocoLivre();
+		if (blocoFat && posicaoLivre != -1) {
 			char* nomeDiretorio = pegaNome(caminho);
-			copiaString(cluster_parent->dir[free_position].filename, nomeDiretorio);
-			cluster_parent->dir[free_position].attributes = 2;
-			cluster_parent->dir[free_position].first_block = fat_block;
-			escreveCluster(root_endereco, cluster_parent);
+			copiaString(clusterPrincipal->dir[posicaoLivre].filename, nomeDiretorio);
+			clusterPrincipal->dir[posicaoLivre].attributes = 2;
+			clusterPrincipal->dir[posicaoLivre].first_block = blocoFat;
+			escreveCluster(enderecoRoot, clusterPrincipal);
 		}
 	}
 	else
-		printf("caminho NÃO ENCONTRADO\n");
+			printf("caminho não encontrado\n");
 }
 
-void write(char* caminho, char* content)
-{
-	int root_endereco = 9;
-	data_cluster* root_cluster = carregaFatCluster(9);
-	data_cluster* cluster = encontra(root_cluster, caminho, &root_endereco);
-	if (cluster){
-		limpaString(cluster->data);
-		copiaString(cluster->data, content);
-		escreveCluster(root_endereco, cluster);
-	}
-	else
-		printf("FILE NÃO ENCONTRADO\n");
-
-}
-
-int empty(int block)
-{
-	data_cluster* cluster = carregaFatCluster(block);
-	int i;
-	for (i = 0; i < 32; ++i)
-		if(cluster->dir[i].attributes != 0)
-			return 0;
-
-	return 1;
-}
-
+//Função que remove um arquivo ou diretorio
 void unlink(char* caminho)
 {
 	carregaFat();
 	int i;
-	int root_endereco = 9;
-	data_cluster* root_cluster = carregaFatCluster(root_endereco);
-	encontraPrincipal(root_cluster, caminho, &root_endereco);
-	data_cluster* cluster = carregaFatCluster(root_endereco);
+	int enderecoRoot = 9;
+	data_cluster* clusterDoRoot = carregaFatCluster(enderecoRoot);
+	encontraPrincipal(clusterDoRoot, caminho, &enderecoRoot);
+	data_cluster* cluster = carregaFatCluster(enderecoRoot);
 	if(temFilho(caminho) == 1){
 	printf("Não é possível excluir pois não está vazio");
 	}else{
@@ -378,134 +356,156 @@ void unlink(char* caminho)
 					int first = cluster->dir[i].first_block;
 					fat[first] = 0x0000;
 					salvaFat();
-					apagaCluster(root_endereco);
+					apagaCluster(enderecoRoot);
 				
 				}
 			}
 		}else{
-			printf("ARQUIVO NÃO ENCONTRADO\n");
+			printf("Arquivo não encontrado\n");
 		}
 	}
 
 }
 
-void read(char* caminho)
-{
-	carregaFat();
-	int root_endereco = 9;
-	data_cluster* root_cluster = carregaFatCluster(9);
-	data_cluster* cluster = encontra(root_cluster, caminho, &root_endereco);
-	if (cluster)
-		printf("%s\n", cluster->data);
-
+//Funçao para sobrescrever em um arquivo existente
+void write(char* caminho, char* content)
+{	
+	int enderecoRoot = 9;
+	data_cluster* clusterDoRoot = carregaFatCluster(9);
+	data_cluster* cluster = encontra(clusterDoRoot, caminho, &enderecoRoot);
+	if (cluster){
+		limpaString(cluster->data);
+		copiaString(cluster->data, content);
+		escreveCluster(enderecoRoot, cluster);
+	}
 	else
-		printf("FILE NÃO ENCONTRADO\n");
+		printf("caminho não encontrado\n");
+
 }
 
+//Adiciona um texto a um arquivo existente
 void append(char* caminho, char* content)
 {
 	carregaFat();
-	int root_endereco = 9;
-	data_cluster* root_cluster = carregaFatCluster(9);
-	data_cluster* cluster = encontra(root_cluster, caminho, &root_endereco);
+	int enderecoRoot = 9;
+	data_cluster* clusterDoRoot = carregaFatCluster(9);
+	data_cluster* cluster = encontra(clusterDoRoot, caminho, &enderecoRoot);
 	if (cluster){
 		char* data = cluster->data;
 		strcat(data, content);
 		copiaString(cluster->data, data);
-		escreveCluster(root_endereco, cluster);
+		escreveCluster(enderecoRoot, cluster);
 	}
 
 	else
-		printf("FILE NÃO ENCONTRADO\n");
+		printf("Arquivo não encontrado\n");
 
 }
 
+//Função para ler dados de um arquivo existente
+void read(char* caminho)
+{
+	carregaFat();
+	int enderecoRoot = 9;
+	data_cluster* clusterDoRoot = carregaFatCluster(9);
+	data_cluster* cluster = encontra(clusterDoRoot, caminho, &enderecoRoot);
+	if (cluster)
+		printf("%s\n", cluster->data);
+
+	else
+		printf("Arquivo não encontrado\n");
+}
+
+
+//Função que junta todas as outras em um simples shell
 void shell(void)
 {
-	char name[4096] = { 0 };
-    char name2[4096] = { 0 };
-	char nameCopy[4096] = { 0 };
+	char nome[4096] = { 0 };
+    char nomeAux[4096] = { 0 };
+	char copiaDoNome[4096] = { 0 };
 	const char aux[2] = "/";
 	char aux2[4096] = { 0 };
 
-	char *token;
+	char *comandoDigitado;
 	int i;
 
 	printf("Digite o comando: ");
-	fgets(name,4096,stdin);
+	fgets(nome,4096,stdin);
 
-	strcpy(nameCopy,name);
+	strcpy(copiaDoNome,nome);
 
-	token = strtok(name,aux);
+	comandoDigitado = strtok(nome,aux);
 
-	if ( strcmp(token, "append ") == 0 && nameCopy[7] == '/')
-	{
-		for(i = 7; i < strlen(nameCopy)-1; ++i)
-		{
-			aux2[i-7] = nameCopy[i];
-		}
-		printf("Digite o texto");
-		fgets(name2,4096,stdin);
-		append(aux2,name2);
-	}
-	else if ( strcmp(token, "create ") == 0 && nameCopy[7] == '/')
-	{
-		for(i = 7; i < strlen(nameCopy)-1; ++i)
-		{
-			aux2[i-7] = nameCopy[i];
-		}
-		create(aux2);
-	}
-	else if ( strcmp(token, "init\n") == 0)
+	if ( strcmp(comandoDigitado, "init\n") == 0)
 	{
 		init();
 	}
-	else if ( strcmp(token, "load\n") == 0)
+	else if ( strcmp(comandoDigitado, "load\n") == 0)
 	{
 		carregaFat();
 	}
-	else if ( strcmp(token, "ls ") == 0 && nameCopy[3] == '/') 
+	else if ( strcmp(comandoDigitado, "ls ") == 0 && copiaDoNome[3] == '/') 
 	{
-		for(i = 3; i < strlen(nameCopy)-1; ++i)
+		for(i = 3; i < strlen(copiaDoNome)-1; ++i)
 		{
-			aux2[i-3] = nameCopy[i];
+			aux2[i-3] = copiaDoNome[i];
 		}
 		ls(aux2);
 	}
-	else if ( strcmp(token, "mkdir ") == 0 && nameCopy[6] == '/')
+	else if ( strcmp(comandoDigitado, "mkdir ") == 0 && copiaDoNome[6] == '/')
 	{
-		for(i = 6; i < strlen(nameCopy)-1; ++i)
+		for(i = 6; i < strlen(copiaDoNome)-1; ++i)
 		{
-			aux2[i-6] = nameCopy[i];
+			aux2[i-6] = copiaDoNome[i];
 		}
 		mkdir(aux2);
 	}
-	else if ( strcmp(token, "read ") == 0 && nameCopy[5] == '/')
+	else if ( strcmp(comandoDigitado, "create ") == 0 && copiaDoNome[7] == '/')
 	{
-		for(i = 5; i < strlen(nameCopy)-1; ++i)
+		for(i = 7; i < strlen(copiaDoNome)-1; ++i)
 		{
-			aux2[i-5] = nameCopy[i];
+			aux2[i-7] = copiaDoNome[i];
 		}
-		read(aux2);
+		create(aux2);
 	}
-	else if ( strcmp(token, "unlink ") == 0 && nameCopy[7] == '/')
+		else if ( strcmp(comandoDigitado, "unlink ") == 0 && copiaDoNome[7] == '/')
 	{
-		for(i = 7; i < strlen(nameCopy)-1; ++i)
+		for(i = 7; i < strlen(copiaDoNome)-1; ++i)
 		{
-			aux2[i-7] = nameCopy[i];
+			aux2[i-7] = copiaDoNome[i];
 		}
 		unlink(aux2);
 	}
-	else if ( strcmp(token, "write ") == 0 && nameCopy[6] == '/')
+	else if ( strcmp(comandoDigitado, "write ") == 0 && copiaDoNome[6] == '/')
 	{
-		for(i = 6; i < strlen(nameCopy)-1; ++i)
+		for(i = 6; i < strlen(copiaDoNome)-1; ++i)
 		{
-			aux2[i-6] = nameCopy[i];
+			aux2[i-6] = copiaDoNome[i];
 		}
 		printf("Digite o texto:\n");
-		fgets(name2,4096,stdin);
-		write(aux2,name2);
+		fgets(nomeAux,4096,stdin);
+		write(aux2,nomeAux);
 	}
+	else if ( strcmp(comandoDigitado, "append ") == 0 && copiaDoNome[7] == '/')
+	{
+		for(i = 7; i < strlen(copiaDoNome)-1; ++i)
+		{
+			aux2[i-7] = copiaDoNome[i];
+		}
+		printf("Digite o texto");
+		fgets(nomeAux,4096,stdin);
+		append(aux2,nomeAux);
+	}
+	else if ( strcmp(comandoDigitado, "read ") == 0 && copiaDoNome[5] == '/')
+	{
+		for(i = 5; i < strlen(copiaDoNome)-1; ++i)
+		{
+			aux2[i-5] = copiaDoNome[i];
+		}
+		read(aux2);
+	}
+
+	
 	else printf("Erro no comando \n");
 }
 
